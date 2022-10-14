@@ -353,7 +353,7 @@ GameObject:
   - component: {fileID: 1782327572533206788}
   m_Layer: 0
   m_Name: Chibi
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
