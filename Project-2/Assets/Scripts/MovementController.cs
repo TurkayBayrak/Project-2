@@ -17,6 +17,6 @@ public class MovementController : MonoBehaviour
         // stackParentTransform.Translate(Vector3.back * (Time.deltaTime * 3f));
         // backGroundParentTransform.Translate(Vector3.back * (Time.deltaTime * 3f));
         
-        playerTransform.Translate(Vector3.forward * (Time.deltaTime * 3f));
+        playerTransform.Translate(Vector3.forward * (Time.deltaTime * 3.2f));
     }
 }

@@ -35,14 +35,20 @@ public class ObjectPooler : MonoBehaviour
             for (var i = 0; i < item.poolSize; i++)
             {
                 var obj = Instantiate(item.objectToPool);
+                
+                if (item.hasParent)
+                    obj.transform.SetParent(item.parentTransform);
+                
                 obj.SetActive(false);
                 pooledObjects.Add(obj);
             }
         }
     }
 
-    public GameObject GetPooledObject(string itemTag) 
+    public GameObject GetPooledObject(string itemTag, int index) 
     {
+        return pooledObjects[index];
+        
         for (var i = 0; i < pooledObjects.Count; i++)
         {
             if (!pooledObjects[i].activeInHierarchy && pooledObjects[i].CompareTag(itemTag))
@@ -53,7 +59,7 @@ public class ObjectPooler : MonoBehaviour
         {
             if (!item.objectToPool.CompareTag(itemTag)) continue;
             if (!item.shouldExpand) continue;
-            var obj = (GameObject)Instantiate(item.objectToPool);
+            var obj = Instantiate(item.objectToPool);
             obj.SetActive(false);
             pooledObjects.Add(obj);
             return obj;
