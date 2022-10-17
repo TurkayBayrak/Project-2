@@ -1,6 +1,7 @@
 using System.Collections;
 using DG.Tweening;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
@@ -9,6 +10,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform fallingStackTransform;
     [SerializeField] private Material[] stackMaterials;
     [SerializeField] private Transform firstStackTransform;
+    [SerializeField] private Button playButton;
+    [SerializeField] private Button restartButton;
+    [SerializeField] private Button playNextLevelButton;
+    [SerializeField] private GameObject fogPanel;
 
     private MeshRenderer fallingStackMeshRenderer;
     private MeshRenderer currentStackMeshRenderer;
@@ -19,7 +24,8 @@ public class GameManager : MonoBehaviour
     private GameObject player;
     private Transform chibiTransform;
     private Vector3 playerStartPosition;
-    
+    private UiManager UiManager;
+
     private int perfectSeries;
     private int matchCount;
     private int index;
@@ -28,52 +34,68 @@ public class GameManager : MonoBehaviour
     private bool failed;
     private bool playerFalling;
     private float checkPoint;
+    private bool levelCompleted;
+    private bool countdownEnded;
 
     private readonly Vector3 defaultVector3 = new Vector3(0, 0, 0);
     private readonly Vector3 defaultStackScale = new Vector3(3,1,3);
 
-    public bool levelCompleted;
-    public int currentLevel = 1;
-    public bool countdownEnded;
-    private bool playerReachedToFinish;
+    public int CurrentLevel { get; private set; } = 1;
 
     public Level[] levels;
+    public float perfectMatchTolerance;
+    
     
     private void Awake()
     {
         if (!instance)
             instance = this;
     }
-
-    private void OnEnable()
-    {
-        EventManager.OnLevelCompleted += OnLevelCompleted;
-    }
-
-    private void OnDisable()
-    {
-        EventManager.OnLevelCompleted -= OnLevelCompleted;
-    }
-
-    private void OnLevelCompleted()
-    {
-        levelCompleted = true;
-    }
-
+    
     private void Start()
     {
-        ObjectPooler = ObjectPooler.instance;
+        ObjectPooler = GetComponent<ObjectPooler>();
         player = GameObject.FindWithTag("Player");
         fallingStackMeshRenderer = fallingStackTransform.GetComponent<MeshRenderer>();
         playerStartPosition = player.transform.position;
         finishTransform = GameObject.FindWithTag("Finish").transform;
         chibiTransform = player.transform.GetChild(0).transform;
+        UiManager = UiManager.instance;
+        
+        playButton.onClick.AddListener(StartCountdown);
+        restartButton.onClick.AddListener(Restart);
+        playNextLevelButton.onClick.AddListener(PlayNextLevel);
+    }
+
+    private void OnEnable()
+    {
+        EventManager.OnLevelCompleted += OnLevelCompleted;
+        EventManager.OnGameOver += OnGameOver;
+    }
+
+    private void OnDisable()
+    {
+        EventManager.OnLevelCompleted -= OnLevelCompleted;
+        EventManager.OnGameOver -= OnGameOver;
+    }
+
+    private void OnLevelCompleted()
+    {
+        levelCompleted = true;
+        StartCoroutine(WaitBeforeNextLevelButton());
+    }
+
+    private void OnGameOver()
+    {
+        StartCoroutine(WaitBeforeRestartButton());
     }
 
     private void Update()
     {
         if (!countdownEnded) return;
         if (levelCompleted) return;
+        
+        player.transform.Translate(Vector3.forward * (Time.deltaTime * 1.8f));
         
         if (failed)
         {
@@ -120,9 +142,9 @@ public class GameManager : MonoBehaviour
         }
 
         matchCount++;
-        EventManager.StackMatched(matchCount);
+        UiManager.SetMatchCountText(matchCount);
         
-        if (Mathf.Abs(currentPosition.x - previousPosX) < 0.2f) //Perfect match condition
+        if (Mathf.Abs(currentPosition.x - previousPosX) < perfectMatchTolerance) //Perfect match condition
         {
             currentStackTransform.position = new Vector3(previousPosX, currentPosition.y, currentPosition.z);
             AudioManager.instance.PlayNote(perfectSeries);
@@ -168,17 +190,14 @@ public class GameManager : MonoBehaviour
 
     private void GetNextStack()
     {
-        if (matchCount == levels[currentLevel - 1].stackCount)
-        {
-            return;
-        }
+        if (matchCount == levels[CurrentLevel - 1].stackCount) return;
         
         if (index != ObjectPooler.pooledObjects.Count - 1)
             index++;
         else
             index = 0;
         
-        var stack = ObjectPooler.instance.GetPooledObject("Stack", index);
+        var stack = ObjectPooler.GetPooledObject("Stack", index);
 
         previousStackTransform = currentStackTransform;
 
@@ -207,7 +226,7 @@ public class GameManager : MonoBehaviour
         isOnTheRight = !isOnTheRight;
     }
     
-    public void SendFirstStack()
+    private void SendFirstStack()
     {
         chibiTransform.DORotate(defaultVector3, 0.5f);
         SetFinishStackPosition();
@@ -242,7 +261,7 @@ public class GameManager : MonoBehaviour
             materialIndex = 0;
     }
 
-    public void ResetValuesOnRestart()
+    private void ResetValuesOnRestart()
     {
         foreach (var stack in ObjectPooler.pooledObjects)
         {
@@ -268,13 +287,71 @@ public class GameManager : MonoBehaviour
 
     private void SetFinishStackPosition()
     {
-        var totalStackLength = levels[currentLevel - 1].stackCount * 3;
+        var totalStackLength = levels[CurrentLevel - 1].stackCount * 3;
         var firstStackEndPoint = firstStackTransform.position.z + firstStackTransform.localScale.z / 2;
         var finishPointZ = finishTransform.localScale.z / 2;
 
         var totalLength = totalStackLength + firstStackEndPoint + finishPointZ;
 
         finishTransform.position = new Vector3(100, -0.5f, totalLength);
+    }
+    
+    private void StartCountdown()
+    {
+        fogPanel.SetActive(false);
+        UiManager.SetTexts();
+        StartCoroutine(CountDownCo());
+    }
+
+    private IEnumerator CountDownCo()
+    {
+        UiManager.startCountDownText.text = "3";
+        yield return new WaitForSeconds(1);
+        UiManager.startCountDownText.text = "2";
+        yield return new WaitForSeconds(1);
+        UiManager.startCountDownText.text = "1";
+        yield return new WaitForSeconds(1);
+        UiManager.startCountDownText.text = "GO";
+        yield return new WaitForSeconds(1);
+        UiManager.startCountDownText.enabled = false;
+        SendFirstStack();
+    }
+
+    private IEnumerator WaitBeforeRestartButton()
+    {
+        yield return new WaitForSeconds(1);
+        fogPanel.SetActive(true);
+        playButton.gameObject.SetActive(false);
+        playNextLevelButton.gameObject.SetActive(false);
+        restartButton.gameObject.SetActive(true);
+    }
+
+    private IEnumerator WaitBeforeNextLevelButton()
+    {
+        yield return new WaitForSeconds(2);
+        fogPanel.SetActive(true);
+        playButton.gameObject.SetActive(false);
+        restartButton.gameObject.SetActive(false);
+        playNextLevelButton.gameObject.SetActive(true);
+    }
+
+    private void Restart()
+    {
+        DOTween.KillAll();
+        ResetValuesOnRestart();
+        fogPanel.SetActive(false);
+        UiManager.SetTexts();
+        StartCountdown();
+    }
+
+    private void PlayNextLevel()
+    {
+        CurrentLevel++;
+        EventManager.NextLevelStarting();
+        fogPanel.SetActive(false);
+        UiManager.SetTexts();
+        StartCountdown();
+        ResetValuesOnRestart();
     }
 }
 

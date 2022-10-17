@@ -3,12 +3,6 @@ using UnityEngine;
 
 public class EventManager : MonoBehaviour
 {
-    public static Action<int> OnStackMatched;
-    public static void StackMatched(int matchCount)
-    {
-        OnStackMatched?.Invoke(matchCount);
-    }
-
     public static Action OnGameOver;
     public static void GameOver()
     {
@@ -26,6 +20,4 @@ public class EventManager : MonoBehaviour
     {
         OnNextLevelStarting?.Invoke();
     }
-
-
 }

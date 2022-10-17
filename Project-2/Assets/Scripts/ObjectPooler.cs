@@ -7,26 +7,14 @@ public class ObjectPoolItem
 {
     public GameObject objectToPool;
     public int poolSize;
-    public bool shouldExpand = true;
-
-    public bool hasParent;
-    public Transform parentTransform;
 }
 
 public class ObjectPooler : MonoBehaviour
 {
-    public static ObjectPooler instance;
-
     public List<GameObject> pooledObjects;
 
     public List<ObjectPoolItem> itemsToPool;
-
-    private void Awake() 
-    {
-        if(!instance)
-            instance = this;
-    }
-
+    
     private void Start()
     {
         pooledObjects = new List<GameObject>();
@@ -35,9 +23,6 @@ public class ObjectPooler : MonoBehaviour
             for (var i = 0; i < item.poolSize; i++)
             {
                 var obj = Instantiate(item.objectToPool);
-                
-                if (item.hasParent)
-                    obj.transform.SetParent(item.parentTransform);
                 
                 obj.SetActive(false);
                 pooledObjects.Add(obj);
@@ -48,22 +33,5 @@ public class ObjectPooler : MonoBehaviour
     public GameObject GetPooledObject(string itemTag, int index) 
     {
         return pooledObjects[index];
-        
-        for (var i = 0; i < pooledObjects.Count; i++)
-        {
-            if (!pooledObjects[i].activeInHierarchy && pooledObjects[i].CompareTag(itemTag))
-                return pooledObjects[i];
-        }
-        
-        foreach (var item in itemsToPool)
-        {
-            if (!item.objectToPool.CompareTag(itemTag)) continue;
-            if (!item.shouldExpand) continue;
-            var obj = Instantiate(item.objectToPool);
-            obj.SetActive(false);
-            pooledObjects.Add(obj);
-            return obj;
-        }
-        return null;
     }
 }
