@@ -1,34 +1,33 @@
-using System;
 using UnityEngine;
 
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager instance;
     
-    private AudioSource _audioSource;
-    public AudioClip[] clips;
+    private AudioSource audioSource;
+    [SerializeField] private AudioClip[] clips;
 
-    public int[] notes;
+    [SerializeField] private int[] notes;
 
     private void Awake()
     {
         if (!instance)
             instance = this;
 
-        _audioSource = GetComponent<AudioSource>();
+        audioSource = GetComponent<AudioSource>();
     }
 
     public void PlayNote(int index)
     {
-        _audioSource.clip = clips[0];
-        _audioSource.pitch = Mathf.Pow(2, notes[index] / 12f);
-        _audioSource.Play();
+        audioSource.clip = clips[0];
+        audioSource.pitch = Mathf.Pow(2, notes[index] / 12f);
+        audioSource.Play();
     }
 
     public void PlayCutEffect()
     {
-        _audioSource.clip = clips[1];
-        _audioSource.pitch = 1;
-        _audioSource.Play();
+        audioSource.clip = clips[1];
+        audioSource.pitch = 1;
+        audioSource.Play();
     }
 }
