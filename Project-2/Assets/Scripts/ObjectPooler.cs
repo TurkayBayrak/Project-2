@@ -11,13 +11,13 @@ public class ObjectPoolItem
 
 public class ObjectPooler : MonoBehaviour
 {
-    public List<GameObject> pooledObjects;
-
-    public List<ObjectPoolItem> itemsToPool;
+    public List<GameObject> PooledObjects { get; private set; }
+    
+    [SerializeField] private List<ObjectPoolItem> itemsToPool;
     
     private void Start()
     {
-        pooledObjects = new List<GameObject>();
+        PooledObjects = new List<GameObject>();
         foreach (var item in itemsToPool)
         {
             for (var i = 0; i < item.poolSize; i++)
@@ -25,13 +25,13 @@ public class ObjectPooler : MonoBehaviour
                 var obj = Instantiate(item.objectToPool);
                 
                 obj.SetActive(false);
-                pooledObjects.Add(obj);
+                PooledObjects.Add(obj);
             }
         }
     }
 
     public GameObject GetPooledObject(string itemTag, int index) 
     {
-        return pooledObjects[index];
+        return PooledObjects[index];
     }
 }

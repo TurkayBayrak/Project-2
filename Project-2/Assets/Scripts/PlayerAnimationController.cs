@@ -13,13 +13,13 @@ public class PlayerAnimationController : MonoBehaviour
     private void OnEnable()
     {
         EventManager.OnLevelCompleted += OnLevelCompleted;
-        EventManager.OnNextLevelStarting += OnNextLevelStarting;
+        EventManager.OnLevelStarting += OnLevelStarting;
     }
 
     private void OnDisable()
     {
         EventManager.OnLevelCompleted -= OnLevelCompleted;
-        EventManager.OnNextLevelStarting -= OnNextLevelStarting;
+        EventManager.OnLevelStarting -= OnLevelStarting;
     }
 
     private void OnLevelCompleted()
@@ -27,7 +27,7 @@ public class PlayerAnimationController : MonoBehaviour
         SetPlayerDancing(true);
     }
 
-    private void OnNextLevelStarting()
+    private void OnLevelStarting()
     {
         SetPlayerDancing(false);
     }

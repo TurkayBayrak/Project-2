@@ -19,13 +19,13 @@ public class CameraController : MonoBehaviour
     private void OnEnable()
     {
         EventManager.OnLevelCompleted += OnLevelCompleted;
-        EventManager.OnNextLevelStarting += OnNextLevelStarting;
+        EventManager.OnLevelStarting += OnNextLevelStarting;
     }
 
     private void OnDisable()
     {
         EventManager.OnLevelCompleted -= OnLevelCompleted;
-        EventManager.OnNextLevelStarting -= OnNextLevelStarting;
+        EventManager.OnLevelStarting -= OnNextLevelStarting;
     }
 
     private void OnLevelCompleted()

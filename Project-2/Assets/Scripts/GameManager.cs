@@ -42,8 +42,10 @@ public class GameManager : MonoBehaviour
 
     public int CurrentLevel { get; private set; } = 1;
 
-    public Level[] levels;
-    public float perfectMatchTolerance;
+    [SerializeField] private Level[] levels;
+    
+    [Tooltip("0: impossible, 1: too easy")]
+    [SerializeField] private float perfectMatchTolerance;
     
     
     private void Awake()
@@ -82,7 +84,16 @@ public class GameManager : MonoBehaviour
     private void OnLevelCompleted()
     {
         levelCompleted = true;
-        StartCoroutine(WaitBeforeNextLevelButton());
+        if (CurrentLevel != levels.Length)
+            StartCoroutine(WaitBeforeNextLevelButton());
+        else
+        {
+            fogPanel.SetActive(true);
+            playButton.gameObject.SetActive(false);
+            restartButton.gameObject.SetActive(true);
+            playNextLevelButton.gameObject.SetActive(false);
+            UiManager.SetCongratsText(true);
+        }
     }
 
     private void OnGameOver()
@@ -95,7 +106,7 @@ public class GameManager : MonoBehaviour
         if (!countdownEnded) return;
         if (levelCompleted) return;
         
-        player.transform.Translate(Vector3.forward * (Time.deltaTime * 1.8f));
+        player.transform.Translate(Vector3.forward * (Time.deltaTime * 1.75f));
         
         if (failed)
         {
@@ -103,13 +114,24 @@ public class GameManager : MonoBehaviour
             if (!(player.transform.position.z > checkPoint)) return;
             player.transform.DOMoveY(-30, 10);
             EventManager.GameOver();
+            perfectSeries = 0;
             playerFalling = true;
             return;
         }
-        if (Input.GetMouseButtonDown(0))
+
+        if (player.transform.position.z > checkPoint)
         {
-            SetStackAndSendNextOne();
+            if (playerFalling) return;
+            player.transform.DOMoveY(-30, 10);
+            EventManager.GameOver();
+            perfectSeries = 0;
+            failed = true;
+            playerFalling = true;
         }
+
+        if (!Input.GetMouseButtonDown(0)) return;
+        if (matchCount == levels[CurrentLevel - 1].stackCount) return;
+        SetStackAndSendNextOne();
     }
     
     private void SetStackAndSendNextOne()
@@ -133,16 +155,19 @@ public class GameManager : MonoBehaviour
         if (previousRightX < currentLeftX || previousLeftX > currentRightX) //No match condition
         {
             currentStackTransform.DOMoveY(-30, 5);
-            var previousPosZ = previousStackTransform.position.z;
-            var previousScaleZ = previousStackTransform.localScale.z;
-            checkPoint = previousPosZ + previousScaleZ / 2;
             failed = true;
-            perfectSeries = 0;
             return;
         }
 
         matchCount++;
         UiManager.SetMatchCountText(matchCount);
+        
+        var currentPosZ = currentStackTransform.position.z;
+        var currentScaleZ = currentStackTransform.localScale.z;
+        checkPoint = currentPosZ + currentScaleZ / 2;
+        if (matchCount == levels[CurrentLevel - 1].stackCount)
+            checkPoint += 10;
+
         
         if (Mathf.Abs(currentPosition.x - previousPosX) < perfectMatchTolerance) //Perfect match condition
         {
@@ -192,7 +217,7 @@ public class GameManager : MonoBehaviour
     {
         if (matchCount == levels[CurrentLevel - 1].stackCount) return;
         
-        if (index != ObjectPooler.pooledObjects.Count - 1)
+        if (index != ObjectPooler.PooledObjects.Count - 1)
             index++;
         else
             index = 0;
@@ -237,7 +262,8 @@ public class GameManager : MonoBehaviour
         stack.SetActive(true);
 
         previousStackTransform = firstStackTransform;
-        var zAdjustmentPre = previousStackTransform.localScale.z / 2;
+        var localScale = previousStackTransform.localScale;
+        var zAdjustmentPre = localScale.z / 2;
         var zAdjustmentCurrent = stack.transform.localScale.z / 2;
         var totalAddition = zAdjustmentPre + zAdjustmentCurrent;
 
@@ -245,6 +271,10 @@ public class GameManager : MonoBehaviour
         var pos = new Vector3(position.x - 20, -0.5f, position.z + totalAddition);
         stack.transform.position = pos;
         isOnTheRight = !isOnTheRight;
+        
+        var previousPosZ = position.z;
+        var previousScaleZ = localScale.z;
+        checkPoint = previousPosZ + previousScaleZ / 2;
 
         stack.transform.DOMoveX(120, 6);
         SetStackMaterial();
@@ -263,7 +293,7 @@ public class GameManager : MonoBehaviour
 
     private void ResetValuesOnRestart()
     {
-        foreach (var stack in ObjectPooler.pooledObjects)
+        foreach (var stack in ObjectPooler.PooledObjects)
         {
             stack.transform.position = defaultVector3;
             stack.transform.localScale = defaultStackScale;
@@ -305,15 +335,15 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator CountDownCo()
     {
-        UiManager.startCountDownText.text = "3";
+        UiManager.SetCountdownText("3");
         yield return new WaitForSeconds(1);
-        UiManager.startCountDownText.text = "2";
+        UiManager.SetCountdownText("2");
         yield return new WaitForSeconds(1);
-        UiManager.startCountDownText.text = "1";
+        UiManager.SetCountdownText("1");
         yield return new WaitForSeconds(1);
-        UiManager.startCountDownText.text = "GO";
+        UiManager.SetCountdownText("GO");
         yield return new WaitForSeconds(1);
-        UiManager.startCountDownText.enabled = false;
+        UiManager.SetCountdownTextDisabled();
         SendFirstStack();
     }
 
@@ -341,13 +371,16 @@ public class GameManager : MonoBehaviour
         ResetValuesOnRestart();
         fogPanel.SetActive(false);
         UiManager.SetTexts();
+        UiManager.SetCongratsText(false);
+        CurrentLevel = 1;
+        EventManager.LevelStarting();
         StartCountdown();
     }
 
     private void PlayNextLevel()
     {
         CurrentLevel++;
-        EventManager.NextLevelStarting();
+        EventManager.LevelStarting();
         fogPanel.SetActive(false);
         UiManager.SetTexts();
         StartCountdown();

@@ -15,9 +15,9 @@ public class EventManager : MonoBehaviour
         OnLevelCompleted?.Invoke();
     }
     
-    public static Action OnNextLevelStarting;
-    public static void NextLevelStarting()
+    public static Action OnLevelStarting;
+    public static void LevelStarting()
     {
-        OnNextLevelStarting?.Invoke();
+        OnLevelStarting?.Invoke();
     }
 }
